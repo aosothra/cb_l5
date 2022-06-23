@@ -1,18 +1,27 @@
+import logging
 import os
 import re
-from environs import Env
-import redis
 
+import redis
+from environs import Env
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Filters, Updater
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 
 from moltin_api import SimpleMoltinApiClient
+from tg_log_handler import TelegramLogHandler
+
 
 START, HANDLE_MENU, HANDLE_DESCRIPTION, HANDLE_CART, HANDLE_EMAIL = range(5)
 
+log = logging.getLogger(__file__)
 _database = None
 _moltin_api = None
+
+
+def on_error(update, context):
+    log.exception('An exception occured while handling an event.')
+
 
 def start(update, context):
     text = (
@@ -25,7 +34,7 @@ def start(update, context):
         for product_name, product_id 
         in get_moltin_client().get_products().items()
     ]
-    
+
     update.message.reply_text(
         text=text,
         reply_markup=InlineKeyboardMarkup(product_keyboard)
@@ -280,11 +289,18 @@ if __name__ == '__main__':
     env = Env()
     env.read_env()
     
+    logging.basicConfig(level=logging.WARNING)
+    log.setLevel(logging.ERROR)
+    log.addHandler(
+        TelegramLogHandler(env('ALARM_BOT_TOKEN'), env('ALARM_CHAT_ID'))
+    )
+
     token = env("BOT_TOKEN")
     updater = Updater(token)
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
+    dispatcher.add_error_handler(on_error)
     updater.start_polling()
     updater.idle()
