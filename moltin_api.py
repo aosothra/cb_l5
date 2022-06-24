@@ -1,6 +1,5 @@
-import json
+import time
 import requests
-from environs import Env
 
 
 class SimpleMoltinApiClient:
@@ -8,13 +7,17 @@ class SimpleMoltinApiClient:
         self.__client_id = client_id
         self.__client_secret = client_secret
         self.__access_token = None
+        self.__expires_on = 0
 
 
-    def __get_access_token(self, update=False):
-        """Get or retrieve access token. Update flag will force retrieval"""
+    def __get_access_token(self):
+        """Get access token or acquire a new one upon expiration"""
+        now = time.time()
 
-        if self.__access_token and not update:
+        if self.__access_token and now < self.__expires_on:
             return self.__access_token
+
+        print("Acquiring new access token")
 
         url = "https://api.moltin.com/oauth/access_token"
         data = {
@@ -28,6 +31,7 @@ class SimpleMoltinApiClient:
         auth_data = response.json()
 
         self.__access_token = auth_data["access_token"]
+        self.__expires_on = now + auth_data["expires_in"]
 
         return self.__access_token
 
@@ -36,20 +40,14 @@ class SimpleMoltinApiClient:
         """Make an API call with provided parameters"""
 
         url = f"https://api.moltin.com/v2/{query}"
+
         headers = {
             "Authorization": f"Bearer {self.__get_access_token()}"
         }
+
         if kwargs is not None:
             headers["Content-Type"] = "application/json"
         response = requests.request(method, url, headers=headers, json={"data": kwargs})
-
-        if response.status_code == 401:
-            headers["Authorization"] = (
-                f"Bearer {self.__get_access_token(update=True)}"
-            )
-
-            response = requests.request(method, url, headers=headers, json={"data": kwargs})
-            response.raise_for_status()
         
         try:
             return response.json()
