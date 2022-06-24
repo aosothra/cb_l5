@@ -17,8 +17,6 @@ class SimpleMoltinApiClient:
         if self.__access_token and now < self.__expires_on:
             return self.__access_token
 
-        print("Acquiring new access token")
-
         url = "https://api.moltin.com/oauth/access_token"
         data = {
             "client_id": self.__client_id,
