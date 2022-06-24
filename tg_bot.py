@@ -86,7 +86,7 @@ def handle_menu(update, context):
     return HANDLE_DESCRIPTION
 
 
-def get_text_and_buttons_for_cart(cart_id):
+def get_menu(cart_id):
     cart_items, full_price = get_moltin_client().get_cart_and_full_price(cart_id)
     cart_items_display = [
         dedent(
@@ -127,7 +127,7 @@ def handle_description(update, context):
     if users_reply == "cart":
         update.callback_query.edit_message_reply_markup(reply_markup=None)
         
-        text, cart_keyboard = get_text_and_buttons_for_cart(update.effective_chat.id)
+        text, cart_keyboard = get_menu(update.effective_chat.id)
 
         update.callback_query.message.reply_text(
             text=text,
@@ -203,7 +203,7 @@ def handle_cart(update, context):
         item_id=users_reply
     )
 
-    text, cart_keyboard = get_text_and_buttons_for_cart(update.effective_chat.id)
+    text, cart_keyboard = get_menu(update.effective_chat.id)
 
     update.callback_query.answer(text="Item removed from the cart")
     update.callback_query.edit_message_text(
