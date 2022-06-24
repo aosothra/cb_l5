@@ -34,31 +34,18 @@ class SimpleMoltinApiClient:
         return self.__access_token
 
 
-    def __raw_api_call(self, method, query, **kwargs):
-        """Make an API call with provided parameters"""
-
-        url = f"https://api.moltin.com/v2/{query}"
-
+    def get_products(self):
+        url = "https://api.moltin.com/v2/products"
+        
         headers = {
             "Authorization": f"Bearer {self.__get_access_token()}"
         }
 
-        if kwargs is not None:
-            headers["Content-Type"] = "application/json"
-        
-        if method.lower() == "get":
-            response = requests.get(url, headers=headers, params=kwargs)
-        else:
-            response = requests.request(method, url, headers=headers, json={"data": kwargs})
-        
-        # Moltin delete api calls return no content
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
 
-        if not method.lower() == "delete":
-            return response.json()
+        product_data = response.json()
 
-
-    def get_products(self):
-        product_data = self.__raw_api_call("GET", "products")
         return {
             product["name"]: product["id"] 
             for product in product_data["data"]
@@ -66,21 +53,57 @@ class SimpleMoltinApiClient:
 
     
     def get_product_by_id(self, id):
-        product_info = self.__raw_api_call("GET", f"products/{id}")
+        url = f"https://api.moltin.com/v2/products/{id}"
+
+        headers = {
+            "Authorization": f"Bearer {self.__get_access_token()}"
+        }
+
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+
+        product_info = response.json()
+
         return product_info["data"]
 
     
     def get_image_url_by_file_id(self, id):
-        file_info = self.__raw_api_call("GET", f"files/{id}")
+        url = f"https://api.moltin.com/v2/files/{id}"
+
+        headers = {
+            "Authorization": f"Bearer {self.__get_access_token()}"
+        }
+
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+
+        file_info = response.json()
         return file_info["data"]["link"]["href"]
 
 
     def remove_product_from_cart(self, cart_id, item_id):
-        self.__raw_api_call("DELETE", f"carts/{cart_id}/items/{item_id}")
+        url = f"https://api.moltin.com/v2/carts/{cart_id}/items/{item_id}"
+
+        headers = {
+            "Authorization": f"Bearer {self.__get_access_token()}"
+        }
+
+        response = requests.delete(url, headers=headers)
+        response.raise_for_status()
 
     
     def get_cart_and_full_price(self, cart_id):
-        items_info = self.__raw_api_call("GET", f"carts/{cart_id}/items")
+        url = f"https://api.moltin.com/v2/carts/{cart_id}/items"
+
+        headers = {
+            "Authorization": f"Bearer {self.__get_access_token()}"
+        }
+
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+
+        items_info = response.json()
+
         return (
             items_info["data"], 
             items_info["meta"]["display_price"]["with_tax"]["formatted"]
@@ -88,45 +111,93 @@ class SimpleMoltinApiClient:
 
     
     def add_product_to_cart(self, cart_id, product_id, quantity):
-        self.__raw_api_call("POST", f"carts/{cart_id}/items", 
-            id=product_id,
-            type="cart_item",
-            quantity=quantity
-        )
+        url = f"https://api.moltin.com/v2/carts/{cart_id}/items"
+
+        headers = {
+            "Authorization": f"Bearer {self.__get_access_token()}",
+            "Content-Type": "application/json"
+        }
+
+        json = {
+            "data":{
+                "id": product_id,
+                "type": "cart_item",
+                "quantity": quantity
+            }
+        }
+
+        response = requests.post(url, headers=headers, json=json)
+        response.raise_for_status()
 
     
     def get_or_create_customer_by_email(self, email):
-        customer_info = self.__raw_api_call("GET", "customers",
-            filter=f"eq(email,{email})"
-        )
+        url = "https://api.moltin.com/v2/customers"
+
+        headers = {
+            "Authorization": f"Bearer {self.__get_access_token()}"
+        }
+
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+
+        customer_info = response.json()
 
         if customer_info["data"]:
             return customer_info["data"][0]["id"]
 
-        customer_info = self.__raw_api_call("POST", "customers",
-            type="customer",
-            name="Anonymous Customer",
-            email=email
-        )
+        headers["Content-Type"] = "application/json"
+
+        json = {
+            "data": {
+                "type": "customer",
+                "name": "Anonymous Customer",
+                "email": email
+            }
+        }
+
+        response = requests.post(url, headers=headers, json=json)
+        response.raise_for_status()
+
+        customer_info = response.json()
 
         return customer_info["data"]["id"]
 
 
     def flush_cart(self, cart_id):
-        self.__raw_api_call("DELETE", f"cart/{cart_id}")
+        url = f"https://api.moltin.com/v2/carts/{cart_id}"
+
+        headers = {
+            "Authorization": f"Bearer {self.__get_access_token()}"
+        }
+
+        response = requests.delete(url, headers=headers)
+        response.raise_for_status()
 
 
     def checkout(self, cart_id, customer_id):
         placeholder_data = {
-                "first_name": "na",
-                "last_name": "na",
-                "line_1": "na",
-                "region": "na",
-                "postcode": "na",
-                "country": "na"
+            "first_name": "na",
+            "last_name": "na",
+            "line_1": "na",
+            "region": "na",
+            "postcode": "na",
+            "country": "na"
+        }
+
+        url = f"https://api.moltin.com/v2/carts/{cart_id}/checkout"
+
+        headers = {
+            "Authorization": f"Bearer {self.__get_access_token()}",
+            "Content-Type": "application/json"
+        }
+
+        json = {
+            "data":{
+                "customer": {"id": customer_id},
+                "billing_address": placeholder_data,
+                "shipping_address": placeholder_data
             }
-        self.__raw_api_call("POST", f"carts/{cart_id}/checkout",
-            customer={"id":customer_id},
-            billing_address=placeholder_data,
-            shipping_address=placeholder_data
-        )
+        }
+
+        response = requests.post(url, headers=headers, json=json)
+        response.raise_for_status()
