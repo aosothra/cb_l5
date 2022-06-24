@@ -53,10 +53,10 @@ class SimpleMoltinApiClient:
         else:
             response = requests.request(method, url, headers=headers, json={"data": kwargs})
         
-        try:
+        # Moltin delete api calls return no content
+
+        if not method.lower() == "delete":
             return response.json()
-        except ValueError:
-            return None
 
 
     def get_products(self):
