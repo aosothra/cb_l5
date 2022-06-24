@@ -109,7 +109,7 @@ class SimpleMoltinApiClient:
         return customer_info["data"]["id"]
 
 
-    def empty_cart(self, cart_id):
+    def flush_cart(self, cart_id):
         self.__raw_api_call("DELETE", f"cart/{cart_id}")
 
 

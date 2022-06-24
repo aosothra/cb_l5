@@ -217,7 +217,7 @@ def handle_email(update, context):
     
     customer_id = get_moltin_client().get_or_create_customer_by_email(user_reply)
     get_moltin_client().checkout(update.effective_chat.id, customer_id)
-    get_moltin_client().empty_cart(update.effective_chat.id)
+    get_moltin_client().flush_cart(update.effective_chat.id)
 
     update.message.reply_text(
         text="Thank you for your order! We will contact you at once :D",
