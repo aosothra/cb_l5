@@ -47,7 +47,11 @@ class SimpleMoltinApiClient:
 
         if kwargs is not None:
             headers["Content-Type"] = "application/json"
-        response = requests.request(method, url, headers=headers, json={"data": kwargs})
+        
+        if method.lower() == "get":
+            response = requests.get(url, headers=headers, params=kwargs)
+        else:
+            response = requests.request(method, url, headers=headers, json={"data": kwargs})
         
         try:
             return response.json()
@@ -94,7 +98,10 @@ class SimpleMoltinApiClient:
 
     
     def get_or_create_customer_by_email(self, email):
-        customer_info = self.__raw_api_call("GET", f"customers?filter=eq(email,{email})")
+        customer_info = self.__raw_api_call("GET", "customers",
+            filter=f"eq(email,{email})"
+        )
+
         if customer_info["data"]:
             return customer_info["data"][0]["id"]
 
