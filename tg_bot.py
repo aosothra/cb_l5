@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+from textwrap import dedent
 
 import redis
 from environs import Env
@@ -24,9 +25,11 @@ def on_error(update, context):
 
 
 def start(update, context):
-    text = (
-        "Welcome to out humble fish market.\n"
-        "What product are you interested in?"
+    text = dedent(
+        """\
+        Welcome to out humble fish market.
+        What product are you interested in?\
+        """
     )
 
     product_keyboard = [
@@ -55,10 +58,13 @@ def handle_menu(update, context):
         product_info["relationships"]["main_image"]["data"]["id"]
     )
 
-    text = (
-        f"{product_info['name']}\n\n"
-        f"{product_info['meta']['display_price']['with_tax']['formatted']} per kg\n"
-        f"{product_info['meta']['stock']['level']} kg in stock"
+    text = dedent(
+        f"""\
+        {product_info['name']}
+
+        {product_info['meta']['display_price']['with_tax']['formatted']} per kg
+        {product_info['meta']['stock']['level']} kg in stock\
+        """
     )
 
     options_keyboard = [
@@ -83,19 +89,20 @@ def handle_menu(update, context):
 def get_text_and_buttons_for_cart(cart_id):
     cart_items, full_price = get_moltin_client().get_cart_and_full_price(cart_id)
     cart_items_display = [
-        f"{item['name']}\n"
-        f"{item['meta']['display_price']['with_tax']['unit']['formatted']} per kg\n"
-        f"{item['quantity']}kg for "
-        f"{item['meta']['display_price']['with_tax']['value']['formatted']}"
+        dedent(
+            f"""\
+            {item['name']}
+            {item['meta']['display_price']['with_tax']['unit']['formatted']} per kg
+            {item['quantity']}kg for {item['meta']['display_price']['with_tax']['value']['formatted']}\
+            """
+        )
         for item in cart_items
     ]
-    cart_items_display.append(
-        f"Total price: {full_price}"
-    )
+
+    cart_items_display.append(f"Total price: {full_price}")
 
     text = (
-        "\n\n".join(cart_items_display)
-        if cart_items else
+        "\n\n".join(cart_items_display) if cart_items else
         "Cart is empty. Go on and throw in some stuff :D"
     )
 
@@ -103,13 +110,11 @@ def get_text_and_buttons_for_cart(cart_id):
         [InlineKeyboardButton(f"Remove {item['name']}", callback_data=item["id"])]
         for item in cart_items 
     ]
-    cart_keyboard.append(
-        [InlineKeyboardButton(f"Back", callback_data="return")]
-    )
+
+    cart_keyboard.append([InlineKeyboardButton(f"Back", callback_data="return")])
+
     if cart_items:
-        cart_keyboard.append(
-            [InlineKeyboardButton(f"Checkout", callback_data="checkout")]
-        )
+        cart_keyboard.append([InlineKeyboardButton(f"Checkout", callback_data="checkout")])
 
     return text, cart_keyboard
 
@@ -181,9 +186,11 @@ def handle_cart(update, context):
     if users_reply == "checkout":
         update.callback_query.edit_message_reply_markup(reply_markup=None)
 
-        text = (
-            "To complete your order please enter your email address.\n"
-            "Our commercial department will issue the payment."
+        text = dedent(
+            """\
+            To complete your order please enter your email address.
+            Our commercial department will issue the payment.\
+            """
         )
 
         update.callback_query.message.reply_text(
